@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 import { db } from "./database.js";
+=======
+import { db } from "database.js";
+>>>>>>> Stashed changes
 
 const products = [
   [
