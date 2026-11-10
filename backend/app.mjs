@@ -210,7 +210,6 @@ function saveImported(input,user) {
 async function handle(req,res) {
   const url=new URL(req.url,'http://localhost'),route=url.pathname;
   try {
-    if(req.method==='GET'&&route==='/'){const data=readFileSync(resolve(ROOT,'index.html'));res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Length':data.length,'Cache-Control':'no-store'});return res.end(data);}
     if(req.method==='GET'&&route==='/api/auth/status')return json(res,200,{setup_required:!db.prepare('SELECT 1 FROM users LIMIT 1').get(),user:userFor(req)});
     if(req.method==='POST'&&['/api/setup','/api/login'].includes(route)){
       const data=await bodyJSON(req),username=String(data.username??'').trim().toLowerCase(),password=String(data.password??''),display=String(data.display_name||username).trim();

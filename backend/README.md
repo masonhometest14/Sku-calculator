@@ -18,7 +18,7 @@ Load sample products when needed:
 npm run seed
 ```
 
-Open <http://localhost:8000>. The first visit asks you to create the workspace Admin account with a unique password of at least 12 characters. SQLite is saved to `mason-home.db`; `.env.local` sets its path through `DATABASE_URL`.
+Run the Next.js frontend in `../frontend` and open <http://localhost:3000>. The first visit asks you to create the workspace Admin account with a unique password of at least 12 characters. This service provides the API and SQLite database. SQLite is saved to `mason-home.db`; `.env.local` sets its path through `DATABASE_URL`.
 
 ## Included
 
