@@ -11,8 +11,11 @@ Requires Node.js 24 or newer.
 ```powershell
 cd backend
 npm ci
+npm run build
 npm start
 ```
+
+`npm run build` checks the backend JavaScript modules for syntax errors; Node runs these files directly without a compile step.
 
 Load sample products when needed:
 

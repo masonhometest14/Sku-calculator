@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node --check services/server.js && node --check services/api.js && node --check services/auth.js && node --check services/database.js && node --check services/products.js && node --check services/seed.js",
     "start": "node services/server.js",
     "seed": "node services/seed.js"
   },

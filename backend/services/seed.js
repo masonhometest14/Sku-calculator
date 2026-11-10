@@ -1,4 +1,4 @@
-import { db } from "./services/database.js";
+import { db } from "./database.js";
 
 const products = [
   [
