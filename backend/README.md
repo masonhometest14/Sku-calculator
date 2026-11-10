@@ -2,6 +2,8 @@
 
 Local Node.js and SQLite app for SKU unit economics, channel comparisons, buying analysis, and exports.
 
+Backend code lives in `services/`: `server.js` starts the API, while `api.js`, `auth.js`, `products.js`, and `database.js` keep request handling, authentication, product operations, and SQLite logic separate.
+
 ## Run locally
 
 Requires Node.js 24 or newer.
@@ -32,4 +34,3 @@ Run the Next.js frontend in `../frontend` and open <http://localhost:3000>. The 
 ## Operating limits
 
 The server binds to `127.0.0.1`; this is a local single-process app, not a team-hosted deployment. For shared access, deploy behind HTTPS and a production server, restrict first-admin setup, and add scheduled/offsite backups. The current backup is manual. Shopify/marketplace sync and automatic inventory feeds are future work. Finance/CA should validate GST, HSN, and ITC eligibility.
-

@@ -2,7 +2,7 @@
 
 SKU profitability project split into two services:
 
-- `backend/` — Node.js and SQLite API
+- `backend/services/` — Node.js API, authentication, product logic, and SQLite modules.
 - `frontend/` — Next.js app containing the full user interface.
 
 ## Run locally

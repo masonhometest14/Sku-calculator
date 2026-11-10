@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node app.mjs",
-    "seed": "node seed.js"
+    "start": "node services/server.js",
+    "seed": "node services/seed.js"
   },
   "engines": {
     "node": ">=24.0.0"

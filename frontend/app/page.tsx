@@ -4,119 +4,2168 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 
 type Product = Record<string, any> & { id: number; sku: string; name: string };
-type User = { id: number; username: string; display_name: string; role: string };
-type View = "dashboard" | "calculator" | "comparison" | "database" | "reports" | "settings";
-const channels = ["Shopify", "Amazon", "Myntra", "Nykaa", "Tata Cliq", "Ajio", "Offline"];
-const fields = ["sku","name","category","subcategory","supplier","origin","channel","hsn","gst","mrp","price","seller_discount","marketplace_discount","purchase","purchase_gst","itc","nonrecoverable","freight","insurance","bcd","sws","import_igst","clearance","port","local_transport","other_procurement","commission","commission_rate","commission_gst","payment","payment_rate","payment_gst","shipping","shipping_gst","packaging","packaging_gst","fulfilment","returns","other_variable","advertising","influencer","campaign","monthly_sales","return_rate","gst_tcs","income_tax_tds","product_type","demand_strength","demand_consistency","quality_score","quality_override","inventory_units","lead_time_days","days_cover"];
-const fieldDefs = [
-  { title: "Product details", note: "Identity, classification and channel", keys: ["sku","name","category","subcategory","supplier","origin","channel","hsn","gst"] },
-  { title: "Selling price", note: "GST-inclusive customer price; seller-funded discounts reduce your revenue.", keys: ["mrp","price","seller_discount","gst_tcs","income_tax_tds","marketplace_discount","monthly_sales","return_rate"] },
-  { title: "Landed product cost", note: "Recoverable input tax credit is excluded from cost; non-recoverable GST is included.", keys: ["purchase","purchase_gst","itc","nonrecoverable","freight","insurance","bcd","sws","import_igst","clearance","port","local_transport","other_procurement"] },
-  { title: "Channel & fulfilment costs", note: "Enter expenses net of any eligible GST credit.", keys: ["commission","commission_rate","commission_gst","payment","payment_rate","payment_gst","shipping","shipping_gst","packaging","packaging_gst","fulfilment","returns","other_variable"] },
-  { title: "Demand, quality & inventory", note: "Used to classify product health and buying risk.", keys: ["product_type","demand_strength","demand_consistency","quality_score","quality_override","inventory_units","lead_time_days","days_cover"] },
-  { title: "Attributable marketing", note: "Only directly attributable costs belong in product contribution.", keys: ["advertising","influencer","campaign"] },
-];
-const labels: Record<string,string> = {
-  sku:"SKU code",name:"Product name",category:"Category",subcategory:"Subcategory",supplier:"Supplier",origin:"Country of origin",channel:"Sales channel",hsn:"HSN code",gst:"GST rate (%)",mrp:"MRP incl. GST (₹)",price:"Selling price incl. GST (₹)",seller_discount:"Seller-funded discount, excl. GST (₹)",gst_tcs:"GST TCS receivable (₹)",income_tax_tds:"Income-tax TDS receivable (₹)",marketplace_discount:"Marketplace-funded promo (₹)",monthly_sales:"Monthly units sold",return_rate:"Return rate (%)",purchase:"Vendor purchase price, excl. GST (₹)",purchase_gst:"Purchase GST rate (%)",itc:"Eligible input tax credit (₹)",nonrecoverable:"Non-recoverable GST (₹)",freight:"International freight (₹)",insurance:"Insurance (₹)",bcd:"Basic Customs Duty (₹)",sws:"Social Welfare Surcharge (₹)",import_igst:"Import IGST (₹)",clearance:"Customs clearance (₹)",port:"Port handling (₹)",local_transport:"Local transport (₹)",other_procurement:"Other procurement (₹)",commission:"Marketplace commission (₹)",commission_rate:"Commission (% of net revenue)",commission_gst:"Commission GST (₹)",payment:"Payment gateway fee (₹)",payment_rate:"Payment fee (% of net revenue)",payment_gst:"Payment fee GST (₹)",shipping:"Outbound shipping (₹)",shipping_gst:"Shipping GST (₹)",packaging:"Packaging (₹)",packaging_gst:"Packaging GST (₹)",fulfilment:"Warehouse / fulfilment (₹)",returns:"Return & damage provision (₹)",other_variable:"Other variable expenses (₹)",product_type:"Product type",demand_strength:"Demand strength (0–100)",demand_consistency:"Demand consistency (0–100)",quality_score:"Customer / quality health (0–100)",quality_override:"Quality override",inventory_units:"Inventory on hand (units)",lead_time_days:"Supplier lead time (days)",days_cover:"Inventory cover (days)",advertising:"Product advertising (₹ / unit)",influencer:"Influencer cost (₹ / unit)",campaign:"Campaign cost (₹ / unit)"
+type User = {
+  id: number;
+  username: string;
+  display_name: string;
+  role: string;
 };
-const defaults = { demand_strength:25, profitability:30, demand_consistency:15, quality_score:15, inventory_efficiency:15 };
-const emptyProduct = () => Object.fromEntries(fields.map((key) => [key, key === "gst" || key === "purchase_gst" ? 18 : key === "origin" ? "Domestic" : key === "channel" ? "Shopify" : key === "quality_score" || key === "demand_strength" || key === "demand_consistency" ? 50 : key === "sku" || key === "name" || key === "category" || key === "subcategory" || key === "supplier" || key === "hsn" || key === "product_type" ? "" : 0]));
-const money = (value: number) => new Intl.NumberFormat("en-IN", { style:"currency", currency:"INR", maximumFractionDigits:0 }).format(value || 0);
+type View =
+  | "dashboard"
+  | "calculator"
+  | "comparison"
+  | "database"
+  | "reports"
+  | "settings";
+const channels = [
+  "Shopify",
+  "Amazon",
+  "Myntra",
+  "Nykaa",
+  "Tata Cliq",
+  "Ajio",
+  "Offline",
+];
+const fields = [
+  "sku",
+  "name",
+  "category",
+  "subcategory",
+  "supplier",
+  "origin",
+  "channel",
+  "hsn",
+  "gst",
+  "mrp",
+  "price",
+  "seller_discount",
+  "marketplace_discount",
+  "purchase",
+  "purchase_gst",
+  "itc",
+  "nonrecoverable",
+  "freight",
+  "insurance",
+  "bcd",
+  "sws",
+  "import_igst",
+  "clearance",
+  "port",
+  "local_transport",
+  "other_procurement",
+  "commission",
+  "commission_rate",
+  "commission_gst",
+  "payment",
+  "payment_rate",
+  "payment_gst",
+  "shipping",
+  "shipping_gst",
+  "packaging",
+  "packaging_gst",
+  "fulfilment",
+  "returns",
+  "other_variable",
+  "advertising",
+  "influencer",
+  "campaign",
+  "monthly_sales",
+  "return_rate",
+  "gst_tcs",
+  "income_tax_tds",
+  "product_type",
+  "demand_strength",
+  "demand_consistency",
+  "quality_score",
+  "quality_override",
+  "inventory_units",
+  "lead_time_days",
+  "days_cover",
+];
+const fieldDefs = [
+  {
+    title: "Product details",
+    note: "Identity, classification and channel",
+    keys: [
+      "sku",
+      "name",
+      "category",
+      "subcategory",
+      "supplier",
+      "origin",
+      "channel",
+      "hsn",
+      "gst",
+    ],
+  },
+  {
+    title: "Selling price",
+    note: "GST-inclusive customer price; seller-funded discounts reduce your revenue.",
+    keys: [
+      "mrp",
+      "price",
+      "seller_discount",
+      "gst_tcs",
+      "income_tax_tds",
+      "marketplace_discount",
+      "monthly_sales",
+      "return_rate",
+    ],
+  },
+  {
+    title: "Landed product cost",
+    note: "Recoverable input tax credit is excluded from cost; non-recoverable GST is included.",
+    keys: [
+      "purchase",
+      "purchase_gst",
+      "itc",
+      "nonrecoverable",
+      "freight",
+      "insurance",
+      "bcd",
+      "sws",
+      "import_igst",
+      "clearance",
+      "port",
+      "local_transport",
+      "other_procurement",
+    ],
+  },
+  {
+    title: "Channel & fulfilment costs",
+    note: "Enter expenses net of any eligible GST credit.",
+    keys: [
+      "commission",
+      "commission_rate",
+      "commission_gst",
+      "payment",
+      "payment_rate",
+      "payment_gst",
+      "shipping",
+      "shipping_gst",
+      "packaging",
+      "packaging_gst",
+      "fulfilment",
+      "returns",
+      "other_variable",
+    ],
+  },
+  {
+    title: "Demand, quality & inventory",
+    note: "Used to classify product health and buying risk.",
+    keys: [
+      "product_type",
+      "demand_strength",
+      "demand_consistency",
+      "quality_score",
+      "quality_override",
+      "inventory_units",
+      "lead_time_days",
+      "days_cover",
+    ],
+  },
+  {
+    title: "Attributable marketing",
+    note: "Only directly attributable costs belong in product contribution.",
+    keys: ["advertising", "influencer", "campaign"],
+  },
+];
+const labels: Record<string, string> = {
+  sku: "SKU code",
+  name: "Product name",
+  category: "Category",
+  subcategory: "Subcategory",
+  supplier: "Supplier",
+  origin: "Country of origin",
+  channel: "Sales channel",
+  hsn: "HSN code",
+  gst: "GST rate (%)",
+  mrp: "MRP incl. GST (₹)",
+  price: "Selling price incl. GST (₹)",
+  seller_discount: "Seller-funded discount, excl. GST (₹)",
+  gst_tcs: "GST TCS receivable (₹)",
+  income_tax_tds: "Income-tax TDS receivable (₹)",
+  marketplace_discount: "Marketplace-funded promo (₹)",
+  monthly_sales: "Monthly units sold",
+  return_rate: "Return rate (%)",
+  purchase: "Vendor purchase price, excl. GST (₹)",
+  purchase_gst: "Purchase GST rate (%)",
+  itc: "Eligible input tax credit (₹)",
+  nonrecoverable: "Non-recoverable GST (₹)",
+  freight: "International freight (₹)",
+  insurance: "Insurance (₹)",
+  bcd: "Basic Customs Duty (₹)",
+  sws: "Social Welfare Surcharge (₹)",
+  import_igst: "Import IGST (₹)",
+  clearance: "Customs clearance (₹)",
+  port: "Port handling (₹)",
+  local_transport: "Local transport (₹)",
+  other_procurement: "Other procurement (₹)",
+  commission: "Marketplace commission (₹)",
+  commission_rate: "Commission (% of net revenue)",
+  commission_gst: "Commission GST (₹)",
+  payment: "Payment gateway fee (₹)",
+  payment_rate: "Payment fee (% of net revenue)",
+  payment_gst: "Payment fee GST (₹)",
+  shipping: "Outbound shipping (₹)",
+  shipping_gst: "Shipping GST (₹)",
+  packaging: "Packaging (₹)",
+  packaging_gst: "Packaging GST (₹)",
+  fulfilment: "Warehouse / fulfilment (₹)",
+  returns: "Return & damage provision (₹)",
+  other_variable: "Other variable expenses (₹)",
+  product_type: "Product type",
+  demand_strength: "Demand strength (0–100)",
+  demand_consistency: "Demand consistency (0–100)",
+  quality_score: "Customer / quality health (0–100)",
+  quality_override: "Quality override",
+  inventory_units: "Inventory on hand (units)",
+  lead_time_days: "Supplier lead time (days)",
+  days_cover: "Inventory cover (days)",
+  advertising: "Product advertising (₹ / unit)",
+  influencer: "Influencer cost (₹ / unit)",
+  campaign: "Campaign cost (₹ / unit)",
+};
+const defaults = {
+  demand_strength: 25,
+  profitability: 30,
+  demand_consistency: 15,
+  quality_score: 15,
+  inventory_efficiency: 15,
+};
+const emptyProduct = () =>
+  Object.fromEntries(
+    fields.map((key) => [
+      key,
+      key === "gst" || key === "purchase_gst"
+        ? 18
+        : key === "origin"
+          ? "Domestic"
+          : key === "channel"
+            ? "Shopify"
+            : key === "quality_score" ||
+                key === "demand_strength" ||
+                key === "demand_consistency"
+              ? 50
+              : key === "sku" ||
+                  key === "name" ||
+                  key === "category" ||
+                  key === "subcategory" ||
+                  key === "supplier" ||
+                  key === "hsn" ||
+                  key === "product_type"
+                ? ""
+                : 0,
+    ]),
+  );
+const money = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
 const percent = (value: number) => `${(value || 0).toFixed(1)}%`;
 function calculate(d: Product | Record<string, any>) {
   const rate = Math.max(0, Number(d.gst) || 0) / 100;
-  const revenue = Math.max(0, (Number(d.price) || 0) / (1 + rate) - (Number(d.seller_discount) || 0));
-  const landed = ["purchase","nonrecoverable","freight","insurance","bcd","sws","clearance","port","local_transport","other_procurement"].reduce((sum,k)=>sum+(Number(d[k])||0),0);
-  const fixed = ["commission","commission_gst","payment","payment_gst","shipping","shipping_gst","packaging","packaging_gst","fulfilment","returns","other_variable"].reduce((sum,k)=>sum+(Number(d[k])||0),0);
-  const feeRate = ((Number(d.commission_rate)||0)+(Number(d.payment_rate)||0))/100;
-  const gross = revenue - landed, before = gross - fixed - revenue * feeRate;
-  const marketing = ["advertising","influencer","campaign"].reduce((sum,k)=>sum+(Number(d[k])||0),0), after = before - marketing;
-  return { revenue, landed, gross, grossMargin: revenue ? gross/revenue*100 : 0, before, marketing, after, afterMargin: revenue ? after/revenue*100 : 0, monthly: after*(Number(d.monthly_sales)||0), breakEvenPrice: ((landed+fixed)/Math.max(.0001,1-feeRate)+(Number(d.seller_discount)||0))*(1+rate) };
+  const revenue = Math.max(
+    0,
+    (Number(d.price) || 0) / (1 + rate) - (Number(d.seller_discount) || 0),
+  );
+  const landed = [
+    "purchase",
+    "nonrecoverable",
+    "freight",
+    "insurance",
+    "bcd",
+    "sws",
+    "clearance",
+    "port",
+    "local_transport",
+    "other_procurement",
+  ].reduce((sum, k) => sum + (Number(d[k]) || 0), 0);
+  const fixed = [
+    "commission",
+    "commission_gst",
+    "payment",
+    "payment_gst",
+    "shipping",
+    "shipping_gst",
+    "packaging",
+    "packaging_gst",
+    "fulfilment",
+    "returns",
+    "other_variable",
+  ].reduce((sum, k) => sum + (Number(d[k]) || 0), 0);
+  const feeRate =
+    ((Number(d.commission_rate) || 0) + (Number(d.payment_rate) || 0)) / 100;
+  const gross = revenue - landed,
+    before = gross - fixed - revenue * feeRate;
+  const marketing = ["advertising", "influencer", "campaign"].reduce(
+      (sum, k) => sum + (Number(d[k]) || 0),
+      0,
+    ),
+    after = before - marketing;
+  return {
+    revenue,
+    landed,
+    gross,
+    grossMargin: revenue ? (gross / revenue) * 100 : 0,
+    before,
+    marketing,
+    after,
+    afterMargin: revenue ? (after / revenue) * 100 : 0,
+    monthly: after * (Number(d.monthly_sales) || 0),
+    breakEvenPrice:
+      ((landed + fixed) / Math.max(0.0001, 1 - feeRate) +
+        (Number(d.seller_discount) || 0)) *
+      (1 + rate),
+  };
 }
 async function api(path: string, init?: RequestInit) {
-  const response = await fetch(path, { ...init, cache:"no-store", headers: { ...(init?.body ? {"Content-Type":"application/json"} : {}) } });
+  const response = await fetch(path, {
+    ...init,
+    cache: "no-store",
+    headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}) },
+  });
   const data = response.status === 204 ? null : await response.json();
-  if (!response.ok) throw new Error(data?.error || `Request failed (${response.status})`);
+  if (!response.ok)
+    throw new Error(data?.error || `Request failed (${response.status})`);
   return data;
 }
 
 export default function Home() {
-  const [user,setUser] = useState<User|null>(null), [setup,setSetup] = useState(false), [loading,setLoading] = useState(true);
-  const [skus,setSkus] = useState<Product[]>([]), [view,setView] = useState<View>("dashboard"), [error,setError] = useState(""), [notice,setNotice] = useState("");
-  const [form,setForm] = useState<Record<string,any>>(emptyProduct), [activeId,setActiveId] = useState<number|null>(null);
-  const [settings,setSettings] = useState<any>({weights:defaults,thresholds:{hero:80,low_margin:15,volume:70,new_launch_days:90}}), [users,setUsers] = useState<User[]>([]);
-  const [authName,setAuthName] = useState(""), [authUser,setAuthUser] = useState(""), [authPass,setAuthPass] = useState("");
-  const [dashboardFilter,setDashboardFilter] = useState({category:"",supplier:"",channel:"",type:"",from:"",to:""});
-  const [channelProfiles,setChannelProfiles] = useState<Record<string,any[]>>({}), [compareSku,setCompareSku] = useState(""), [compareProfiles,setCompareProfiles] = useState<any[]>([]), [compareIds,setCompareIds] = useState<number[]>([]);
-  const [search,setSearch] = useState(""), [dbCategory,setDbCategory] = useState(""), [dbChannel,setDbChannel] = useState("");
-  const [dialog,setDialog] = useState<{title:string;html?:string;rows?:any[]}|null>(null), [busy,setBusy] = useState(false);
+  const [user, setUser] = useState<User | null>(null),
+    [setup, setSetup] = useState(false),
+    [loading, setLoading] = useState(true);
+  const [skus, setSkus] = useState<Product[]>([]),
+    [view, setView] = useState<View>("dashboard"),
+    [error, setError] = useState(""),
+    [notice, setNotice] = useState("");
+  const [form, setForm] = useState<Record<string, any>>(emptyProduct),
+    [activeId, setActiveId] = useState<number | null>(null);
+  const [settings, setSettings] = useState<any>({
+      weights: defaults,
+      thresholds: { hero: 80, low_margin: 15, volume: 70, new_launch_days: 90 },
+    }),
+    [users, setUsers] = useState<User[]>([]);
+  const [authName, setAuthName] = useState(""),
+    [authUser, setAuthUser] = useState(""),
+    [authPass, setAuthPass] = useState("");
+  const [dashboardFilter, setDashboardFilter] = useState({
+    category: "",
+    supplier: "",
+    channel: "",
+    type: "",
+    from: "",
+    to: "",
+  });
+  const [channelProfiles, setChannelProfiles] = useState<Record<string, any[]>>(
+      {},
+    ),
+    [compareSku, setCompareSku] = useState(""),
+    [compareProfiles, setCompareProfiles] = useState<any[]>([]),
+    [compareIds, setCompareIds] = useState<number[]>([]);
+  const [search, setSearch] = useState(""),
+    [dbCategory, setDbCategory] = useState(""),
+    [dbChannel, setDbChannel] = useState("");
+  const [dialog, setDialog] = useState<{
+      title: string;
+      html?: string;
+      rows?: any[];
+    } | null>(null),
+    [busy, setBusy] = useState(false);
 
   async function load() {
-    const [products,prefs] = await Promise.all([api("/api/skus"),api("/api/classification-settings")]);
-    setSkus(products); if(prefs) setSettings(prefs);
+    const [products, prefs] = await Promise.all([
+      api("/api/skus"),
+      api("/api/classification-settings"),
+    ]);
+    setSkus(products);
+    if (prefs) setSettings(prefs);
   }
-  useEffect(() => { api("/api/auth/status").then(async status=>{setSetup(status.setup_required);if(status.user){setUser(status.user);await load()}}).catch(e=>setError(e.message)).finally(()=>setLoading(false)); }, []);
-  useEffect(() => { if(!dashboardFilter.channel)return; api(`/api/channels?channel=${encodeURIComponent(dashboardFilter.channel)}`).then(rows=>setChannelProfiles(old=>({...old,[dashboardFilter.channel]:rows}))).catch(e=>setError(e.message)); }, [dashboardFilter.channel]);
-  useEffect(() => { if(!compareSku){setCompareProfiles([]);return} api(`/api/channels?sku_id=${compareSku}`).then(setCompareProfiles).catch(e=>setError(e.message)); }, [compareSku]);
+  useEffect(() => {
+    api("/api/auth/status")
+      .then(async (status) => {
+        setSetup(status.setup_required);
+        if (status.user) {
+          setUser(status.user);
+          await load();
+        }
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+  useEffect(() => {
+    if (!dashboardFilter.channel) return;
+    api(`/api/channels?channel=${encodeURIComponent(dashboardFilter.channel)}`)
+      .then((rows) =>
+        setChannelProfiles((old) => ({
+          ...old,
+          [dashboardFilter.channel]: rows,
+        })),
+      )
+      .catch((e) => setError(e.message));
+  }, [dashboardFilter.channel]);
+  useEffect(() => {
+    if (!compareSku) {
+      setCompareProfiles([]);
+      return;
+    }
+    api(`/api/channels?sku_id=${compareSku}`)
+      .then(setCompareProfiles)
+      .catch((e) => setError(e.message));
+  }, [compareSku]);
 
   async function authenticate(event: FormEvent) {
-    event.preventDefault();setError("");setBusy(true);
-    try { const result=await api(setup?"/api/setup":"/api/login",{method:"POST",body:JSON.stringify({username:authUser,password:authPass,...(setup?{display_name:authName}:{})})});setUser(result.user);await load(); }
-    catch(e){setError((e as Error).message)} finally{setBusy(false);setLoading(false)}
+    event.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      const result = await api(setup ? "/api/setup" : "/api/login", {
+        method: "POST",
+        body: JSON.stringify({
+          username: authUser,
+          password: authPass,
+          ...(setup ? { display_name: authName } : {}),
+        }),
+      });
+      setUser(result.user);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+      setLoading(false);
+    }
   }
-  async function logout(){await api("/api/logout",{method:"POST",body:"{}"});setUser(null);setSkus([])}
-  async function saveSku(){setError("");setBusy(true);try{const saved=await api("/api/skus",{method:"POST",body:JSON.stringify(form)});setActiveId(saved.id);setForm({...emptyProduct(),...saved});setNotice("Product saved.");await load()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
-  function newSku(){setActiveId(null);setForm(emptyProduct());setView("calculator");setError("")}
-  function editSku(product:Product){setActiveId(product.id);setForm({...emptyProduct(),...product});setView("calculator");setError("")}
-  function setField(key:string,value:any){setForm(old=>({...old,[key]:value}))}
-  function suggestions(key:string){const query=String(form[key]||"").trim().toLowerCase();return query.length<2?[]:skus.filter(s=>String(s[key]||"").toLowerCase().includes(query)).slice(0,6)}
-  function pickProduct(product:Product){setActiveId(product.id);setForm({...emptyProduct(),...product})}
-  function roleCanEdit(key:string){const base=["sku","name","category","subcategory","supplier","origin","channel","product_type"],finance=fields.filter(k=>!["advertising","influencer","campaign","demand_strength","demand_consistency","quality_score","quality_override","inventory_units","lead_time_days","days_cover","product_type"].includes(k)),buy=[...base,"purchase","freight","insurance","bcd","sws","clearance","port","local_transport","other_procurement","inventory_units","lead_time_days","days_cover","monthly_sales"],marketing=[...base,"price","mrp","seller_discount","marketplace_discount","monthly_sales","return_rate","advertising","influencer","campaign"];
-    return user?.role==="Admin"||user?.role==="Finance"&&(base.includes(key)||finance.includes(key))||user?.role==="Buying"&&buy.includes(key)||user?.role==="Marketing"&&marketing.includes(key);
+  async function logout() {
+    await api("/api/logout", { method: "POST", body: "{}" });
+    setUser(null);
+    setSkus([]);
   }
-  function channelCanEdit(key:string){return user?.role==="Admin"||user?.role==="Finance"&&!['advertising','influencer','campaign'].includes(key)||user?.role==="Marketing"&&['monthly_sales','advertising','influencer','campaign'].includes(key)}
+  async function saveSku() {
+    setError("");
+    setBusy(true);
+    try {
+      const saved = await api("/api/skus", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+      setActiveId(saved.id);
+      setForm({ ...emptyProduct(), ...saved });
+      setNotice("Product saved.");
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  function newSku() {
+    setActiveId(null);
+    setForm(emptyProduct());
+    setView("calculator");
+    setError("");
+  }
+  function editSku(product: Product) {
+    setActiveId(product.id);
+    setForm({ ...emptyProduct(), ...product });
+    setView("calculator");
+    setError("");
+  }
+  function setField(key: string, value: any) {
+    setForm((old) => ({ ...old, [key]: value }));
+  }
+  function suggestions(key: string) {
+    const query = String(form[key] || "")
+      .trim()
+      .toLowerCase();
+    return query.length < 2
+      ? []
+      : skus
+          .filter((s) =>
+            String(s[key] || "")
+              .toLowerCase()
+              .includes(query),
+          )
+          .slice(0, 6);
+  }
+  function pickProduct(product: Product) {
+    setActiveId(product.id);
+    setForm({ ...emptyProduct(), ...product });
+  }
+  function roleCanEdit(key: string) {
+    const base = [
+        "sku",
+        "name",
+        "category",
+        "subcategory",
+        "supplier",
+        "origin",
+        "channel",
+        "product_type",
+      ],
+      finance = fields.filter(
+        (k) =>
+          ![
+            "advertising",
+            "influencer",
+            "campaign",
+            "demand_strength",
+            "demand_consistency",
+            "quality_score",
+            "quality_override",
+            "inventory_units",
+            "lead_time_days",
+            "days_cover",
+            "product_type",
+          ].includes(k),
+      ),
+      buy = [
+        ...base,
+        "purchase",
+        "freight",
+        "insurance",
+        "bcd",
+        "sws",
+        "clearance",
+        "port",
+        "local_transport",
+        "other_procurement",
+        "inventory_units",
+        "lead_time_days",
+        "days_cover",
+        "monthly_sales",
+      ],
+      marketing = [
+        ...base,
+        "price",
+        "mrp",
+        "seller_discount",
+        "marketplace_discount",
+        "monthly_sales",
+        "return_rate",
+        "advertising",
+        "influencer",
+        "campaign",
+      ];
+    return (
+      user?.role === "Admin" ||
+      (user?.role === "Finance" &&
+        (base.includes(key) || finance.includes(key))) ||
+      (user?.role === "Buying" && buy.includes(key)) ||
+      (user?.role === "Marketing" && marketing.includes(key))
+    );
+  }
+  function channelCanEdit(key: string) {
+    return (
+      user?.role === "Admin" ||
+      (user?.role === "Finance" &&
+        !["advertising", "influencer", "campaign"].includes(key)) ||
+      (user?.role === "Marketing" &&
+        ["monthly_sales", "advertising", "influencer", "campaign"].includes(
+          key,
+        ))
+    );
+  }
 
-  const calc = useMemo(()=>calculate(form),[form]);
-  const currentClassification=activeId?classify(form,settings):"New Launch";
-  const dashboardProducts = useMemo(()=>skus.filter(s=>(!dashboardFilter.category||s.category===dashboardFilter.category)&&(!dashboardFilter.supplier||s.supplier===dashboardFilter.supplier)&&(!dashboardFilter.type||s.product_type===dashboardFilter.type)&&(!dashboardFilter.from||s.updated_at>=dashboardFilter.from)&&(!dashboardFilter.to||String(s.updated_at||"").slice(0,10)<=dashboardFilter.to)&&(!dashboardFilter.channel||(channelProfiles[dashboardFilter.channel]||[]).some(x=>x.sku_id===s.id))),[skus,dashboardFilter,channelProfiles]);
-  const dashboardRows = dashboardProducts.map(s=>{const channel=(channelProfiles[dashboardFilter.channel]||[]).find(x=>x.sku_id===s.id);const d=channel?{...s,...channel}:s;return {s,c:calculate(d),units:Number(d.monthly_sales)||0}});
-  const totalRevenue=dashboardRows.reduce((sum,x)=>sum+x.c.revenue*x.units,0),totalGross=dashboardRows.reduce((sum,x)=>sum+x.c.gross*x.units,0),totalContribution=dashboardRows.reduce((sum,x)=>sum+x.c.after*x.units,0);
-  const databaseRows=skus.filter(s=>(!search||[s.sku,s.name,s.supplier].join(" ").toLowerCase().includes(search.toLowerCase()))&&(!dbCategory||s.category===dbCategory)&&(!dbChannel||s.channel===dbChannel));
-  const comparisonProduct=skus.find(s=>String(s.id)===compareSku), comparisonRows=channels.map(channel=>{const profile=compareProfiles.find(x=>x.channel===channel)||{};return {channel,profile:{...(comparisonProduct||{}),...profile},metrics:calculate({...comparisonProduct,...profile})}});
-  const selectedBuyingProducts=compareIds.map(id=>skus.find(s=>s.id===id)!).filter(Boolean), recommendedBuyingId=[...selectedBuyingProducts].sort((a,b)=>buyingScore(b)-buyingScore(a))[0]?.id;
+  const calc = useMemo(() => calculate(form), [form]);
+  const currentClassification = activeId
+    ? classify(form, settings)
+    : "New Launch";
+  const dashboardProducts = useMemo(
+    () =>
+      skus.filter(
+        (s) =>
+          (!dashboardFilter.category ||
+            s.category === dashboardFilter.category) &&
+          (!dashboardFilter.supplier ||
+            s.supplier === dashboardFilter.supplier) &&
+          (!dashboardFilter.type || s.product_type === dashboardFilter.type) &&
+          (!dashboardFilter.from || s.updated_at >= dashboardFilter.from) &&
+          (!dashboardFilter.to ||
+            String(s.updated_at || "").slice(0, 10) <= dashboardFilter.to) &&
+          (!dashboardFilter.channel ||
+            (channelProfiles[dashboardFilter.channel] || []).some(
+              (x) => x.sku_id === s.id,
+            )),
+      ),
+    [skus, dashboardFilter, channelProfiles],
+  );
+  const dashboardRows = dashboardProducts.map((s) => {
+    const channel = (channelProfiles[dashboardFilter.channel] || []).find(
+      (x) => x.sku_id === s.id,
+    );
+    const d = channel ? { ...s, ...channel } : s;
+    return { s, c: calculate(d), units: Number(d.monthly_sales) || 0 };
+  });
+  const totalRevenue = dashboardRows.reduce(
+      (sum, x) => sum + x.c.revenue * x.units,
+      0,
+    ),
+    totalGross = dashboardRows.reduce((sum, x) => sum + x.c.gross * x.units, 0),
+    totalContribution = dashboardRows.reduce(
+      (sum, x) => sum + x.c.after * x.units,
+      0,
+    );
+  const databaseRows = skus.filter(
+    (s) =>
+      (!search ||
+        [s.sku, s.name, s.supplier]
+          .join(" ")
+          .toLowerCase()
+          .includes(search.toLowerCase())) &&
+      (!dbCategory || s.category === dbCategory) &&
+      (!dbChannel || s.channel === dbChannel),
+  );
+  const comparisonProduct = skus.find((s) => String(s.id) === compareSku),
+    comparisonRows = channels.map((channel) => {
+      const profile = compareProfiles.find((x) => x.channel === channel) || {};
+      return {
+        channel,
+        profile: { ...(comparisonProduct || {}), ...profile },
+        metrics: calculate({ ...comparisonProduct, ...profile }),
+      };
+    });
+  const selectedBuyingProducts = compareIds
+      .map((id) => skus.find((s) => s.id === id)!)
+      .filter(Boolean),
+    recommendedBuyingId = [...selectedBuyingProducts].sort(
+      (a, b) => buyingScore(b) - buyingScore(a),
+    )[0]?.id;
 
-  async function saveChannel(channel:string,key:string,value:string){try{await api("/api/channels",{method:"POST",body:JSON.stringify({sku_id:Number(compareSku),channel,[key]:Number(value)||0})});const rows=await api(`/api/channels?sku_id=${compareSku}`);setCompareProfiles(rows)}catch(e){setError((e as Error).message)}}
-  async function importFile(file?:File){if(!file){setError("Choose a CSV or Excel file first.");return}setBusy(true);setError("");try{let body:any;if(file.name.toLowerCase().endsWith(".xlsx")){const bytes=new Uint8Array(await file.arrayBuffer());let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);body={xlsx:btoa(binary)}}else body={csv:await file.text()};const result=await api("/api/import",{method:"POST",body:JSON.stringify(body)});setNotice(`Imported ${result.count} rows.`);await load()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
-  async function showHistory(id:number){try{const rows=await api(`/api/history?sku_id=${id}`);setDialog({title:"Immutable profitability history",rows})}catch(e){setError((e as Error).message)}}
-  async function showAudit(){try{const rows=await api("/api/audit");setDialog({title:"Cost and tax audit trail",rows})}catch(e){setError((e as Error).message)}}
-  async function loadSettings(){try{const [prefs,allUsers]=await Promise.all([api("/api/settings"),api("/api/users")]);setSettings(prefs);setUsers(allUsers)}catch(e){setError((e as Error).message)}}
-  async function createUser(event:FormEvent<HTMLFormElement>){event.preventDefault();const fd=new FormData(event.currentTarget);try{await api("/api/users",{method:"POST",body:JSON.stringify({username:fd.get("username"),display_name:fd.get("display_name"),password:fd.get("password"),role:fd.get("role")})});setNotice("User created.");await loadSettings();event.currentTarget.reset()}catch(e){setError((e as Error).message)}}
-  async function saveSettings(event:FormEvent<HTMLFormElement>){event.preventDefault();const fd=new FormData(event.currentTarget),weights=Object.fromEntries(["demand_strength","profitability","demand_consistency","quality_score","inventory_efficiency"].map(k=>[k,Number(fd.get(`w-${k}`))])),thresholds=Object.fromEntries(["hero","low_margin","volume","new_launch_days"].map(k=>[k,Number(fd.get(`t-${k}`))]));try{await api("/api/settings",{method:"POST",body:JSON.stringify({weights,thresholds})});setSettings({weights,thresholds});setNotice("Settings saved.")}catch(e){setError((e as Error).message)}}
+  async function saveChannel(channel: string, key: string, value: string) {
+    try {
+      await api("/api/channels", {
+        method: "POST",
+        body: JSON.stringify({
+          sku_id: Number(compareSku),
+          channel,
+          [key]: Number(value) || 0,
+        }),
+      });
+      const rows = await api(`/api/channels?sku_id=${compareSku}`);
+      setCompareProfiles(rows);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function importFile(file?: File) {
+    if (!file) {
+      setError("Choose a CSV or Excel file first.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      let body: any;
+      if (file.name.toLowerCase().endsWith(".xlsx")) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        body = { xlsx: btoa(binary) };
+      } else body = { csv: await file.text() };
+      const result = await api("/api/import", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      setNotice(`Imported ${result.count} rows.`);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function showHistory(id: number) {
+    try {
+      const rows = await api(`/api/history?sku_id=${id}`);
+      setDialog({ title: "Immutable profitability history", rows });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function showAudit() {
+    try {
+      const rows = await api("/api/audit");
+      setDialog({ title: "Cost and tax audit trail", rows });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function loadSettings() {
+    try {
+      const [prefs, allUsers] = await Promise.all([
+        api("/api/settings"),
+        api("/api/users"),
+      ]);
+      setSettings(prefs);
+      setUsers(allUsers);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function createUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const fd = new FormData(event.currentTarget);
+    try {
+      await api("/api/users", {
+        method: "POST",
+        body: JSON.stringify({
+          username: fd.get("username"),
+          display_name: fd.get("display_name"),
+          password: fd.get("password"),
+          role: fd.get("role"),
+        }),
+      });
+      setNotice("User created.");
+      await loadSettings();
+      event.currentTarget.reset();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function saveSettings(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const fd = new FormData(event.currentTarget),
+      weights = Object.fromEntries(
+        [
+          "demand_strength",
+          "profitability",
+          "demand_consistency",
+          "quality_score",
+          "inventory_efficiency",
+        ].map((k) => [k, Number(fd.get(`w-${k}`))]),
+      ),
+      thresholds = Object.fromEntries(
+        ["hero", "low_margin", "volume", "new_launch_days"].map((k) => [
+          k,
+          Number(fd.get(`t-${k}`)),
+        ]),
+      );
+    try {
+      await api("/api/settings", {
+        method: "POST",
+        body: JSON.stringify({ weights, thresholds }),
+      });
+      setSettings({ weights, thresholds });
+      setNotice("Settings saved.");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
 
-  if(loading)return <main className="authwall"><div className="authbox">Loading workspace…</div></main>;
-  if(!user)return <main className="authwall"><form className="authbox" onSubmit={authenticate}><div className="eyebrow">Mason Home · Private workspace</div><h1>{setup?"Create administrator":"Sign in"}</h1><p>{setup?"Set up the first administrator account. Use a unique password with at least 12 characters.":"Sign in to view product profitability."}</p>{setup&&<div className="field"><label htmlFor="auth-name">Your name</label><input id="auth-name" autoComplete="name" value={authName} onChange={e=>setAuthName(e.target.value)}/></div>}<div className="field"><label htmlFor="auth-user">Username</label><input id="auth-user" autoComplete="username" required value={authUser} onChange={e=>setAuthUser(e.target.value)}/></div><div className="field"><label htmlFor="auth-pass">Password</label><input id="auth-pass" type="password" autoComplete="current-password" required value={authPass} onChange={e=>setAuthPass(e.target.value)}/></div><button className="btn primary" disabled={busy}>{busy?"Please wait…":setup?"Create workspace":"Sign in"}</button>{error&&<div className="autherr">{error}</div>}</form></main>;
+  if (loading)
+    return (
+      <main className="authwall">
+        <div className="authbox">Loading workspace…</div>
+      </main>
+    );
+  if (!user)
+    return (
+      <main className="authwall">
+        <form className="authbox" onSubmit={authenticate}>
+          <div className="eyebrow">Mason Home · Private workspace</div>
+          <h1>{setup ? "Create administrator" : "Sign in"}</h1>
+          <p>
+            {setup
+              ? "Set up the first administrator account. Use a unique password with at least 12 characters."
+              : "Sign in to view product profitability."}
+          </p>
+          {setup && (
+            <div className="field">
+              <label htmlFor="auth-name">Your name</label>
+              <input
+                id="auth-name"
+                autoComplete="name"
+                value={authName}
+                onChange={(e) => setAuthName(e.target.value)}
+              />
+            </div>
+          )}
+          <div className="field">
+            <label htmlFor="auth-user">Username</label>
+            <input
+              id="auth-user"
+              autoComplete="username"
+              required
+              value={authUser}
+              onChange={(e) => setAuthUser(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="auth-pass">Password</label>
+            <input
+              id="auth-pass"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={authPass}
+              onChange={(e) => setAuthPass(e.target.value)}
+            />
+          </div>
+          <button className="btn primary" disabled={busy}>
+            {busy ? "Please wait…" : setup ? "Create workspace" : "Sign in"}
+          </button>
+          {error && <div className="autherr">{error}</div>}
+        </form>
+      </main>
+    );
 
-  return <div className="shell"><aside className="sidebar"><div className="brand"><b>MASON HOME</b><small>Merchandise intelligence</small></div><nav className="nav">{([["dashboard","01","Overview"],["calculator","02","SKU Calculator"],["comparison","03","Channel Comparison"],["database","04","Product Database"],["reports","05","Reports & Exports"],["settings","06","Settings & access"]] as [View,string,string][]).filter(([key])=>(key!=="settings"||user.role==="Admin")&&(key!=="calculator"||user.role!=="Management")).map(([key,n,label])=><button key={key} className={view===key?"active":""} onClick={()=>{setView(key);setError("");if(key==="settings")void loadSettings()}}><i className="num">{n}</i>{label}</button>)}</nav><div className="sidefoot">PRIVATE WORKSPACE<br/>Financial year 2026–27</div></aside><main className="main"><header className="topbar"><span className="crumb">MASON HOME &nbsp; / &nbsp; <span>{({dashboard:"Overview",calculator:"SKU Calculator",comparison:"Channel Comparison",database:"Product Database",reports:"Reports & Exports",settings:"Settings & access"})[view]}</span></span><div className="user"><div className="avatar">{user.display_name.slice(0,1).toUpperCase()}</div><span><b>{user.display_name}</b> <span className="role-badge">{user.role}</span></span><button className="btn small" onClick={logout}>Sign out</button></div></header><div className="content">
-    {error&&<div className="taxnote" role="alert">{error}<button className="btn small" style={{float:"right"}} onClick={()=>setError("")}>Dismiss</button></div>}{notice&&<div className="taxnote">{notice}<button className="btn small" style={{float:"right"}} onClick={()=>setNotice("")}>Dismiss</button></div>}
+  return (
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <b>MASON HOME</b>
+          <small>Merchandise intelligence</small>
+        </div>
+        <nav className="nav">
+          {(
+            [
+              ["dashboard", "01", "Overview"],
+              ["calculator", "02", "SKU Calculator"],
+              ["comparison", "03", "Channel Comparison"],
+              ["database", "04", "Product Database"],
+              ["reports", "05", "Reports & Exports"],
+              ["settings", "06", "Settings & access"],
+            ] as [View, string, string][]
+          )
+            .filter(
+              ([key]) =>
+                (key !== "settings" || user.role === "Admin") &&
+                (key !== "calculator" || user.role !== "Management"),
+            )
+            .map(([key, n, label]) => (
+              <button
+                key={key}
+                className={view === key ? "active" : ""}
+                onClick={() => {
+                  setView(key);
+                  setError("");
+                  if (key === "settings") void loadSettings();
+                }}
+              >
+                <i className="num">{n}</i>
+                {label}
+              </button>
+            ))}
+        </nav>
+        <div className="sidefoot">
+          PRIVATE WORKSPACE
+          <br />
+          Financial year 2026–27
+        </div>
+      </aside>
+      <main className="main">
+        <header className="topbar">
+          <span className="crumb">
+            MASON HOME &nbsp; / &nbsp;{" "}
+            <span>
+              {
+                {
+                  dashboard: "Overview",
+                  calculator: "SKU Calculator",
+                  comparison: "Channel Comparison",
+                  database: "Product Database",
+                  reports: "Reports & Exports",
+                  settings: "Settings & access",
+                }[view]
+              }
+            </span>
+          </span>
+          <div className="user">
+            <div className="avatar">
+              {user.display_name.slice(0, 1).toUpperCase()}
+            </div>
+            <span>
+              <b>{user.display_name}</b>{" "}
+              <span className="role-badge">{user.role}</span>
+            </span>
+            <button className="btn small" onClick={logout}>
+              Sign out
+            </button>
+          </div>
+        </header>
+        <div className="content">
+          {error && (
+            <div className="taxnote" role="alert">
+              {error}
+              <button
+                className="btn small"
+                style={{ float: "right" }}
+                onClick={() => setError("")}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+          {notice && (
+            <div className="taxnote">
+              {notice}
+              <button
+                className="btn small"
+                style={{ float: "right" }}
+                onClick={() => setNotice("")}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
-    {view==="dashboard"&&<section className="view active"><div className="heading"><div><div className="eyebrow">Business overview</div><h1>Product intelligence</h1><p>A clear view of what your assortment is earning.</p></div>{user.role!=="Management"&&<button className="btn primary" onClick={newSku}>＋ &nbsp; Analyse a product</button>}</div><div className="filters">{([ ["category","All categories",[...new Set(skus.map(s=>s.category).filter(Boolean))]],["supplier","All suppliers",[...new Set(skus.map(s=>s.supplier).filter(Boolean))]],["channel","All channels",channels],["type","All product types",[...new Set(skus.map(s=>s.product_type).filter(Boolean))]] ] as [keyof typeof dashboardFilter,string,string[]][]).map(([key,label,options])=><select key={key} aria-label={label} value={dashboardFilter[key]} onChange={e=>setDashboardFilter(x=>({...x,[key]:e.target.value}))}><option value="">{label}</option>{options.map(option=><option key={option}>{option}</option>)}</select>)}<input type="date" aria-label="Updated from" value={dashboardFilter.from} onChange={e=>setDashboardFilter(x=>({...x,from:e.target.value}))}/><input type="date" aria-label="Updated through" value={dashboardFilter.to} onChange={e=>setDashboardFilter(x=>({...x,to:e.target.value}))}/></div><div className="grid stats">{[[dashboardProducts.length,"SKUs analysed","Current filtered assortment"],[money(totalRevenue),"Monthly net revenue","GST-exclusive, quantity weighted"],[money(totalGross),"Gross profit",`Weighted margin · ${percent(totalRevenue?totalGross/totalRevenue*100:0)}`],[money(totalContribution),"Contribution",`After marketing · ${percent(totalRevenue?totalContribution/totalRevenue*100:0)}`]].map(([value,label,note])=><div className="card" key={String(label)}><div className="stat-label">{label}</div><div className="stat-val">{value}</div><div className="stat-note">{note}</div></div>)}</div><div className="grid panels"><div className="card"><div className="panel-head"><h3>Top products by contribution</h3><span className="pill">{dashboardFilter.channel||"ALL CHANNELS"}</span></div><div className="tablewrap"><table className="table"><thead><tr><th>Product</th><th>SKU</th><th>Net revenue / unit</th><th>Monthly contribution</th><th>Margin</th></tr></thead><tbody>{[...dashboardRows].sort((a,b)=>b.c.after*b.units-a.c.after*a.units).slice(0,20).map(({s,c,units})=><tr key={s.id}><td>{s.name}</td><td>{s.sku}</td><td>{money(c.revenue)}</td><td>{money(c.after*units)}</td><td>{percent(c.afterMargin)}</td></tr>)}</tbody></table></div></div><div className="card"><div className="panel-head"><h3>Portfolio health</h3><span className="subtle">Contribution per unit</span></div>{[["Positive contribution",dashboardRows.filter(x=>x.c.after>0).length,"#6f9b7d"],["Negative contribution",dashboardRows.filter(x=>x.c.after<0).length,"#ad5548"],["Low margin · below 15%",dashboardRows.filter(x=>x.c.after>=0&&x.c.afterMargin<15).length,"#c09a56"]].map(([label,count,color])=><div className="barrow" key={String(label)}><span>{label}</span><div className="bar"><i style={{width:`${dashboardProducts.length?Number(count)/dashboardProducts.length*100:0}%`,background:String(color)}}/></div><b>{count}</b></div>)}<div className="taxnote">Tax credits such as eligible input GST, GST TCS and income-tax TDS are kept separate from product expenses.</div></div></div><div className="grid panels" style={{marginTop:15}}>{[["Top products by monthly sales",[...dashboardRows].sort((a,b)=>b.units-a.units)],["Lowest contribution margin",[...dashboardRows].sort((a,b)=>a.c.afterMargin-b.c.afterMargin)],["Negative contribution",dashboardRows.filter(x=>x.c.after<0)],["High return rate · 10%+",dashboardRows.filter(x=>(x.s.return_rate||0)>=10)],["Excess inventory · 90+ days",dashboardRows.filter(x=>(x.s.days_cover||0)>90)],["Stockout risk within lead time",dashboardRows.filter(x=>(x.s.monthly_sales||0)>0&&(x.s.inventory_units||0)<(x.s.monthly_sales||0)*(x.s.lead_time_days||0)/30)]].map(([title,rows])=><div className="card" key={String(title)}><div className="panel-head"><h3>{title as string}</h3></div><table className="table"><tbody>{(rows as typeof dashboardRows).slice(0,8).map(x=><tr key={x.s.id}><td>{x.s.sku} · {x.s.name}</td><td>{money(x.c.after)}</td></tr>)}</tbody></table></div>)}</div></section>}
+          {view === "dashboard" && (
+            <section className="view active">
+              <div className="heading">
+                <div>
+                  <div className="eyebrow">Business overview</div>
+                  <h1>Product intelligence</h1>
+                  <p>A clear view of what your assortment is earning.</p>
+                </div>
+                {user.role !== "Management" && (
+                  <button className="btn primary" onClick={newSku}>
+                    ＋ &nbsp; Analyse a product
+                  </button>
+                )}
+              </div>
+              <div className="filters">
+                {(
+                  [
+                    [
+                      "category",
+                      "All categories",
+                      [...new Set(skus.map((s) => s.category).filter(Boolean))],
+                    ],
+                    [
+                      "supplier",
+                      "All suppliers",
+                      [...new Set(skus.map((s) => s.supplier).filter(Boolean))],
+                    ],
+                    ["channel", "All channels", channels],
+                    [
+                      "type",
+                      "All product types",
+                      [
+                        ...new Set(
+                          skus.map((s) => s.product_type).filter(Boolean),
+                        ),
+                      ],
+                    ],
+                  ] as [keyof typeof dashboardFilter, string, string[]][]
+                ).map(([key, label, options]) => (
+                  <select
+                    key={key}
+                    aria-label={label}
+                    value={dashboardFilter[key]}
+                    onChange={(e) =>
+                      setDashboardFilter((x) => ({
+                        ...x,
+                        [key]: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">{label}</option>
+                    {options.map((option) => (
+                      <option key={option}>{option}</option>
+                    ))}
+                  </select>
+                ))}
+                <input
+                  type="date"
+                  aria-label="Updated from"
+                  value={dashboardFilter.from}
+                  onChange={(e) =>
+                    setDashboardFilter((x) => ({ ...x, from: e.target.value }))
+                  }
+                />
+                <input
+                  type="date"
+                  aria-label="Updated through"
+                  value={dashboardFilter.to}
+                  onChange={(e) =>
+                    setDashboardFilter((x) => ({ ...x, to: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="grid stats">
+                {[
+                  [
+                    dashboardProducts.length,
+                    "SKUs analysed",
+                    "Current filtered assortment",
+                  ],
+                  [
+                    money(totalRevenue),
+                    "Monthly net revenue",
+                    "GST-exclusive, quantity weighted",
+                  ],
+                  [
+                    money(totalGross),
+                    "Gross profit",
+                    `Weighted margin · ${percent(totalRevenue ? (totalGross / totalRevenue) * 100 : 0)}`,
+                  ],
+                  [
+                    money(totalContribution),
+                    "Contribution",
+                    `After marketing · ${percent(totalRevenue ? (totalContribution / totalRevenue) * 100 : 0)}`,
+                  ],
+                ].map(([value, label, note]) => (
+                  <div className="card" key={String(label)}>
+                    <div className="stat-label">{label}</div>
+                    <div className="stat-val">{value}</div>
+                    <div className="stat-note">{note}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid panels">
+                <div className="card">
+                  <div className="panel-head">
+                    <h3>Top products by contribution</h3>
+                    <span className="pill">
+                      {dashboardFilter.channel || "ALL CHANNELS"}
+                    </span>
+                  </div>
+                  <div className="tablewrap">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>SKU</th>
+                          <th>Net revenue / unit</th>
+                          <th>Monthly contribution</th>
+                          <th>Margin</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...dashboardRows]
+                          .sort(
+                            (a, b) => b.c.after * b.units - a.c.after * a.units,
+                          )
+                          .slice(0, 20)
+                          .map(({ s, c, units }) => (
+                            <tr key={s.id}>
+                              <td>{s.name}</td>
+                              <td>{s.sku}</td>
+                              <td>{money(c.revenue)}</td>
+                              <td>{money(c.after * units)}</td>
+                              <td>{percent(c.afterMargin)}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="card">
+                  <div className="panel-head">
+                    <h3>Portfolio health</h3>
+                    <span className="subtle">Contribution per unit</span>
+                  </div>
+                  {[
+                    [
+                      "Positive contribution",
+                      dashboardRows.filter((x) => x.c.after > 0).length,
+                      "#6f9b7d",
+                    ],
+                    [
+                      "Negative contribution",
+                      dashboardRows.filter((x) => x.c.after < 0).length,
+                      "#ad5548",
+                    ],
+                    [
+                      "Low margin · below 15%",
+                      dashboardRows.filter(
+                        (x) => x.c.after >= 0 && x.c.afterMargin < 15,
+                      ).length,
+                      "#c09a56",
+                    ],
+                  ].map(([label, count, color]) => (
+                    <div className="barrow" key={String(label)}>
+                      <span>{label}</span>
+                      <div className="bar">
+                        <i
+                          style={{
+                            width: `${dashboardProducts.length ? (Number(count) / dashboardProducts.length) * 100 : 0}%`,
+                            background: String(color),
+                          }}
+                        />
+                      </div>
+                      <b>{count}</b>
+                    </div>
+                  ))}
+                  <div className="taxnote">
+                    Tax credits such as eligible input GST, GST TCS and
+                    income-tax TDS are kept separate from product expenses.
+                  </div>
+                </div>
+              </div>
+              <div className="grid panels" style={{ marginTop: 15 }}>
+                {[
+                  [
+                    "Top products by monthly sales",
+                    [...dashboardRows].sort((a, b) => b.units - a.units),
+                  ],
+                  [
+                    "Lowest contribution margin",
+                    [...dashboardRows].sort(
+                      (a, b) => a.c.afterMargin - b.c.afterMargin,
+                    ),
+                  ],
+                  [
+                    "Negative contribution",
+                    dashboardRows.filter((x) => x.c.after < 0),
+                  ],
+                  [
+                    "High return rate · 10%+",
+                    dashboardRows.filter((x) => (x.s.return_rate || 0) >= 10),
+                  ],
+                  [
+                    "Excess inventory · 90+ days",
+                    dashboardRows.filter((x) => (x.s.days_cover || 0) > 90),
+                  ],
+                  [
+                    "Stockout risk within lead time",
+                    dashboardRows.filter(
+                      (x) =>
+                        (x.s.monthly_sales || 0) > 0 &&
+                        (x.s.inventory_units || 0) <
+                          ((x.s.monthly_sales || 0) *
+                            (x.s.lead_time_days || 0)) /
+                            30,
+                    ),
+                  ],
+                ].map(([title, rows]) => (
+                  <div className="card" key={String(title)}>
+                    <div className="panel-head">
+                      <h3>{title as string}</h3>
+                    </div>
+                    <table className="table">
+                      <tbody>
+                        {(rows as typeof dashboardRows).slice(0, 8).map((x) => (
+                          <tr key={x.s.id}>
+                            <td>
+                              {x.s.sku} · {x.s.name}
+                            </td>
+                            <td>{money(x.c.after)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-    {view==="calculator"&&<section className="view active"><div className="heading"><div><div className="eyebrow">Unit economics · Live calculation</div><h1>SKU profitability</h1><p>Enter product costs to understand its real contribution.</p></div><div><button className="btn" onClick={newSku}>New SKU</button> <button className="btn primary" disabled={busy||user.role==="Management"} onClick={saveSku}>{busy?"Saving…":"Save calculation"}</button></div></div><div className="formlayout"><div>{fieldDefs.map(group=><div className="card formcard" key={group.title}><h3 className="section-title">{group.title}</h3><p className="section-sub">{group.note}</p><div className="fields">{group.keys.map(key=><div className={`field ${["freight","insurance","bcd","sws","import_igst","clearance","port","local_transport"].includes(key)&&form.origin!=="Import"?"hide":""}`} key={key}><label htmlFor={`field-${key}`}>{labels[key]}</label>{key==="origin"||key==="channel"||key==="quality_override"?<select id={`field-${key}`} disabled={!roleCanEdit(key)} value={form[key]??""} onChange={e=>setField(key,e.target.value)}>{(key==="origin"?["Domestic","Import"]:key==="channel"?channels:["0","1"]).map(value=><option key={value} value={value}>{key==="quality_override"?(value==="0"?"No override":"Flagged — block Core Hero"):value}</option>)}</select>:<><input id={`field-${key}`} type={group.keys.includes(key)&&!["sku","name","category","subcategory","supplier","hsn","product_type"].includes(key)?"number":"text"} min={!["gst","purchase_gst","return_rate","commission_rate","payment_rate","demand_strength","demand_consistency","quality_score"].includes(key)?0:undefined} max={["gst","purchase_gst","return_rate","commission_rate","payment_rate","demand_strength","demand_consistency","quality_score"].includes(key)?100:undefined} placeholder={key==="sku"?"MH-00001":key==="name"?"Product name":key==="category"?"e.g. Lighting":key==="subcategory"?"e.g. Table lamps":key==="supplier"?"Supplier name":key==="hsn"?"Optional":key==="product_type"?"e.g. Table lamp":""} disabled={!roleCanEdit(key)} value={form[key]??""} onChange={e=>setField(key,e.target.type==="number"?(e.target.value===""?"":Number(e.target.value)):e.target.value)}/>{["sku","name"].includes(key)&&suggestions(key).length>0&&<div className="suggestions">{suggestions(key).map(s=><button type="button" key={s.id} onClick={()=>pickProduct(s)}>{s[key]}<small>{key==="sku"?s.name:s.sku}</small></button>)}</div>}</>}</div>)}</div>{group.title==="Selling price"&&<p className="formula">Marketplace-funded promotions do not reduce seller revenue. Coupon entry is treated as seller-funded unless classified otherwise.</p>}{group.title==="Landed product cost"&&<p className="formula">Enter purchase price excluding GST; eligible ITC is recorded separately and never added to landed cost. Import IGST is a tax credit, excluded here.</p>}{group.title==="Attributable marketing"&&<p className="formula">Shared brand marketing remains outside SKU contribution unless an allocation method is documented.</p>}</div>)}</div><aside className="card result"><div className="result-top"><small>PROFIT / CONTRIBUTION AFTER MARKETING PER UNIT</small><div className={`big ${calc.after>=0?"positive":"negative"}`}>{money(calc.after)}</div><small>{percent(calc.afterMargin)} contribution margin</small></div><div className="result-row"><span>Net revenue</span><b>{money(calc.revenue)}</b></div><div className="result-row"><span>Landed cost</span><b>{money(calc.landed)}</b></div><div className="result-row"><span>Gross profit</span><b>{money(calc.gross)}</b></div><div className="result-row"><span>Contribution before marketing</span><b>{money(calc.before)}</b></div><div className="result-row"><span>Marketing</span><b>{money(calc.marketing)}</b></div><div className="result-row"><span>Break-even price</span><b>{money(calc.breakEvenPrice)}</b></div><div className="result-row"><span>Monthly contribution</span><b>{money(calc.monthly)}</b></div><div className="taxnote"><b>Tax treatment</b><br/>Recoverable GST and import IGST are excluded from costs. BCD and SWS remain in landed cost. TCS/TDS are receivables, not expenses.</div></aside></div><div className="card" style={{marginTop:15}}><div className="panel-head"><h3>Product classification</h3><span className="subtle">Demand · margin · quality · inventory</span></div><span className="pill">{currentClassification}</span></div></section>}
+          {view === "calculator" && (
+            <section className="view active">
+              <div className="heading">
+                <div>
+                  <div className="eyebrow">
+                    Unit economics · Live calculation
+                  </div>
+                  <h1>SKU profitability</h1>
+                  <p>
+                    Enter product costs to understand its real contribution.
+                  </p>
+                </div>
+                <div>
+                  <button className="btn" onClick={newSku}>
+                    New SKU
+                  </button>{" "}
+                  <button
+                    className="btn primary"
+                    disabled={busy || user.role === "Management"}
+                    onClick={saveSku}
+                  >
+                    {busy ? "Saving…" : "Save calculation"}
+                  </button>
+                </div>
+              </div>
+              <div className="formlayout">
+                <div>
+                  {fieldDefs.map((group) => (
+                    <div className="card formcard" key={group.title}>
+                      <h3 className="section-title">{group.title}</h3>
+                      <p className="section-sub">{group.note}</p>
+                      <div className="fields">
+                        {group.keys.map((key) => (
+                          <div
+                            className={`field ${["freight", "insurance", "bcd", "sws", "import_igst", "clearance", "port", "local_transport"].includes(key) && form.origin !== "Import" ? "hide" : ""}`}
+                            key={key}
+                          >
+                            <label htmlFor={`field-${key}`}>
+                              {labels[key]}
+                            </label>
+                            {key === "origin" ||
+                            key === "channel" ||
+                            key === "quality_override" ? (
+                              <select
+                                id={`field-${key}`}
+                                disabled={!roleCanEdit(key)}
+                                value={form[key] ?? ""}
+                                onChange={(e) => setField(key, e.target.value)}
+                              >
+                                {(key === "origin"
+                                  ? ["Domestic", "Import"]
+                                  : key === "channel"
+                                    ? channels
+                                    : ["0", "1"]
+                                ).map((value) => (
+                                  <option key={value} value={value}>
+                                    {key === "quality_override"
+                                      ? value === "0"
+                                        ? "No override"
+                                        : "Flagged — block Core Hero"
+                                      : value}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <>
+                                <input
+                                  id={`field-${key}`}
+                                  type={
+                                    group.keys.includes(key) &&
+                                    ![
+                                      "sku",
+                                      "name",
+                                      "category",
+                                      "subcategory",
+                                      "supplier",
+                                      "hsn",
+                                      "product_type",
+                                    ].includes(key)
+                                      ? "number"
+                                      : "text"
+                                  }
+                                  min={
+                                    ![
+                                      "gst",
+                                      "purchase_gst",
+                                      "return_rate",
+                                      "commission_rate",
+                                      "payment_rate",
+                                      "demand_strength",
+                                      "demand_consistency",
+                                      "quality_score",
+                                    ].includes(key)
+                                      ? 0
+                                      : undefined
+                                  }
+                                  max={
+                                    [
+                                      "gst",
+                                      "purchase_gst",
+                                      "return_rate",
+                                      "commission_rate",
+                                      "payment_rate",
+                                      "demand_strength",
+                                      "demand_consistency",
+                                      "quality_score",
+                                    ].includes(key)
+                                      ? 100
+                                      : undefined
+                                  }
+                                  placeholder={
+                                    key === "sku"
+                                      ? "MH-00001"
+                                      : key === "name"
+                                        ? "Product name"
+                                        : key === "category"
+                                          ? "e.g. Lighting"
+                                          : key === "subcategory"
+                                            ? "e.g. Table lamps"
+                                            : key === "supplier"
+                                              ? "Supplier name"
+                                              : key === "hsn"
+                                                ? "Optional"
+                                                : key === "product_type"
+                                                  ? "e.g. Table lamp"
+                                                  : ""
+                                  }
+                                  disabled={!roleCanEdit(key)}
+                                  value={form[key] ?? ""}
+                                  onChange={(e) =>
+                                    setField(
+                                      key,
+                                      e.target.type === "number"
+                                        ? e.target.value === ""
+                                          ? ""
+                                          : Number(e.target.value)
+                                        : e.target.value,
+                                    )
+                                  }
+                                />
+                                {["sku", "name"].includes(key) &&
+                                  suggestions(key).length > 0 && (
+                                    <div className="suggestions">
+                                      {suggestions(key).map((s) => (
+                                        <button
+                                          type="button"
+                                          key={s.id}
+                                          onClick={() => pickProduct(s)}
+                                        >
+                                          {s[key]}
+                                          <small>
+                                            {key === "sku" ? s.name : s.sku}
+                                          </small>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {group.title === "Selling price" && (
+                        <p className="formula">
+                          Marketplace-funded promotions do not reduce seller
+                          revenue. Coupon entry is treated as seller-funded
+                          unless classified otherwise.
+                        </p>
+                      )}
+                      {group.title === "Landed product cost" && (
+                        <p className="formula">
+                          Enter purchase price excluding GST; eligible ITC is
+                          recorded separately and never added to landed cost.
+                          Import IGST is a tax credit, excluded here.
+                        </p>
+                      )}
+                      {group.title === "Attributable marketing" && (
+                        <p className="formula">
+                          Shared brand marketing remains outside SKU
+                          contribution unless an allocation method is
+                          documented.
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <aside className="card result">
+                  <div className="result-top">
+                    <small>
+                      PROFIT / CONTRIBUTION AFTER MARKETING PER UNIT
+                    </small>
+                    <div
+                      className={`big ${calc.after >= 0 ? "positive" : "negative"}`}
+                    >
+                      {money(calc.after)}
+                    </div>
+                    <small>
+                      {percent(calc.afterMargin)} contribution margin
+                    </small>
+                  </div>
+                  <div className="result-row">
+                    <span>Net revenue</span>
+                    <b>{money(calc.revenue)}</b>
+                  </div>
+                  <div className="result-row">
+                    <span>Landed cost</span>
+                    <b>{money(calc.landed)}</b>
+                  </div>
+                  <div className="result-row">
+                    <span>Gross profit</span>
+                    <b>{money(calc.gross)}</b>
+                  </div>
+                  <div className="result-row">
+                    <span>Contribution before marketing</span>
+                    <b>{money(calc.before)}</b>
+                  </div>
+                  <div className="result-row">
+                    <span>Marketing</span>
+                    <b>{money(calc.marketing)}</b>
+                  </div>
+                  <div className="result-row">
+                    <span>Break-even price</span>
+                    <b>{money(calc.breakEvenPrice)}</b>
+                  </div>
+                  <div className="result-row">
+                    <span>Monthly contribution</span>
+                    <b>{money(calc.monthly)}</b>
+                  </div>
+                  <div className="taxnote">
+                    <b>Tax treatment</b>
+                    <br />
+                    Recoverable GST and import IGST are excluded from costs. BCD
+                    and SWS remain in landed cost. TCS/TDS are receivables, not
+                    expenses.
+                  </div>
+                </aside>
+              </div>
+              <div className="card" style={{ marginTop: 15 }}>
+                <div className="panel-head">
+                  <h3>Product classification</h3>
+                  <span className="subtle">
+                    Demand · margin · quality · inventory
+                  </span>
+                </div>
+                <span className="pill">{currentClassification}</span>
+              </div>
+            </section>
+          )}
 
-    {view==="comparison"&&<section className="view active"><div className="heading"><div><div className="eyebrow">Channel economics</div><h1>Channel comparison</h1><p>Compare contribution across selling channels for a selected SKU.</p></div><select className="btn" value={compareSku} onChange={e=>setCompareSku(e.target.value)}><option value="">Select product</option>{skus.map(s=><option key={s.id} value={s.id}>{s.sku} · {s.name}</option>)}</select></div>{comparisonProduct&&<><div className="card"><div className="panel-head"><h3>Channel economics</h3><span className="subtle">Independent prices and fees · saved to SQLite</span></div><div className="tablewrap"><table className="table"><thead><tr>{["Channel","Units / month","MRP","Price","Discount","Promo","Commission","Comm. %","Comm. GST","Payment","Payment %","Pay GST","Fulfilment","Shipping","Ship GST","Packaging","Pack GST","Returns","Other","Ad cost","Influencer","Campaign","Contribution","Margin","Monthly"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{comparisonRows.map(({channel,profile,metrics})=><tr key={channel}><td><b>{channel}</b>{channel===comparisonProduct.channel&&<span className="pill"> CURRENT</span>}</td>{["monthly_sales","mrp","price","seller_discount","marketplace_discount","commission","commission_rate","commission_gst","payment","payment_rate","payment_gst","fulfilment","shipping","shipping_gst","packaging","packaging_gst","returns","other_variable","advertising","influencer","campaign"].map(key=><td key={key}><input style={{width:76,padding:5,border:"1px solid var(--line)",borderRadius:4}} type="number" value={profile[key]||0} disabled={!channelCanEdit(key)} onChange={e=>setCompareProfiles(old=>old.map(row=>row.channel===channel?{...row,[key]:Number(e.target.value)||0}:row))} onBlur={e=>void saveChannel(channel,key,e.target.value)}/></td>)}<td>{money(metrics.after)}</td><td>{percent(metrics.afterMargin)}</td><td>{money(metrics.monthly)}</td></tr>)}</tbody></table></div><div className="taxnote">Highest contribution per unit: <b>{comparisonRows.length?comparisonRows.reduce((a,b)=>a.metrics.after>b.metrics.after?a:b).channel:"—"}</b>. Highest monthly contribution: <b>{comparisonRows.length?comparisonRows.reduce((a,b)=>a.metrics.monthly>b.metrics.monthly?a:b).channel:"—"}</b>.</div></div><div className="card" style={{marginTop:15}}><div className="panel-head"><h3>Compare products for buying capital</h3><span className="subtle">Choose 2–5 products</span></div><div className="fields">{skus.map(s=><label className="selectrow" key={s.id}><input type="checkbox" checked={compareIds.includes(s.id)} onChange={e=>setCompareIds(old=>e.target.checked?(old.length<5?[...old,s.id]:old):old.filter(id=>id!==s.id))}/>{s.sku} · {s.name}</label>)}</div>{compareIds.length<2?<p className="subtle">Select at least two products to compare.</p>:<div className="tablewrap" style={{marginTop:12}}><table className="table"><thead><tr>{["Product","Price","Landed cost","Gross margin","Contribution margin","Marketing","Returns","Inventory investment","Monthly contribution","Buying signal"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{compareIds.map(id=>skus.find(s=>s.id===id)!).map(s=>{const c=calculate(s),score=buyingScore(s);return <tr key={s.id}><td>{s.sku} · {s.name}</td><td>{money(s.price)}</td><td>{money(c.landed)}</td><td>{percent(c.grossMargin)}</td><td>{percent(c.afterMargin)}</td><td>{money(c.marketing)}</td><td>{percent(s.return_rate)}</td><td>{money(c.landed*(s.inventory_units||0))}</td><td>{money(c.monthly)}</td><td>{s.id===recommendedBuyingId&&score>0&&c.after>0&&!s.quality_override&&(s.return_rate||0)<10&&(s.days_cover||0)<90?"Review for more capital":"Do not increase capital yet"}</td></tr>})}</tbody></table></div>}</div></>}</section>}
+          {view === "comparison" && (
+            <section className="view active">
+              <div className="heading">
+                <div>
+                  <div className="eyebrow">Channel economics</div>
+                  <h1>Channel comparison</h1>
+                  <p>
+                    Compare contribution across selling channels for a selected
+                    SKU.
+                  </p>
+                </div>
+                <select
+                  className="btn"
+                  value={compareSku}
+                  onChange={(e) => setCompareSku(e.target.value)}
+                >
+                  <option value="">Select product</option>
+                  {skus.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.sku} · {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {comparisonProduct && (
+                <>
+                  <div className="card">
+                    <div className="panel-head">
+                      <h3>Channel economics</h3>
+                      <span className="subtle">
+                        Independent prices and fees · saved to SQLite
+                      </span>
+                    </div>
+                    <div className="tablewrap">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            {[
+                              "Channel",
+                              "Units / month",
+                              "MRP",
+                              "Price",
+                              "Discount",
+                              "Promo",
+                              "Commission",
+                              "Comm. %",
+                              "Comm. GST",
+                              "Payment",
+                              "Payment %",
+                              "Pay GST",
+                              "Fulfilment",
+                              "Shipping",
+                              "Ship GST",
+                              "Packaging",
+                              "Pack GST",
+                              "Returns",
+                              "Other",
+                              "Ad cost",
+                              "Influencer",
+                              "Campaign",
+                              "Contribution",
+                              "Margin",
+                              "Monthly",
+                            ].map((x) => (
+                              <th key={x}>{x}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {comparisonRows.map(
+                            ({ channel, profile, metrics }) => (
+                              <tr key={channel}>
+                                <td>
+                                  <b>{channel}</b>
+                                  {channel === comparisonProduct.channel && (
+                                    <span className="pill"> CURRENT</span>
+                                  )}
+                                </td>
+                                {[
+                                  "monthly_sales",
+                                  "mrp",
+                                  "price",
+                                  "seller_discount",
+                                  "marketplace_discount",
+                                  "commission",
+                                  "commission_rate",
+                                  "commission_gst",
+                                  "payment",
+                                  "payment_rate",
+                                  "payment_gst",
+                                  "fulfilment",
+                                  "shipping",
+                                  "shipping_gst",
+                                  "packaging",
+                                  "packaging_gst",
+                                  "returns",
+                                  "other_variable",
+                                  "advertising",
+                                  "influencer",
+                                  "campaign",
+                                ].map((key) => (
+                                  <td key={key}>
+                                    <input
+                                      style={{
+                                        width: 76,
+                                        padding: 5,
+                                        border: "1px solid var(--line)",
+                                        borderRadius: 4,
+                                      }}
+                                      type="number"
+                                      value={profile[key] || 0}
+                                      disabled={!channelCanEdit(key)}
+                                      onChange={(e) =>
+                                        setCompareProfiles((old) =>
+                                          old.map((row) =>
+                                            row.channel === channel
+                                              ? {
+                                                  ...row,
+                                                  [key]:
+                                                    Number(e.target.value) || 0,
+                                                }
+                                              : row,
+                                          ),
+                                        )
+                                      }
+                                      onBlur={(e) =>
+                                        void saveChannel(
+                                          channel,
+                                          key,
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+                                  </td>
+                                ))}
+                                <td>{money(metrics.after)}</td>
+                                <td>{percent(metrics.afterMargin)}</td>
+                                <td>{money(metrics.monthly)}</td>
+                              </tr>
+                            ),
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="taxnote">
+                      Highest contribution per unit:{" "}
+                      <b>
+                        {comparisonRows.length
+                          ? comparisonRows.reduce((a, b) =>
+                              a.metrics.after > b.metrics.after ? a : b,
+                            ).channel
+                          : "—"}
+                      </b>
+                      . Highest monthly contribution:{" "}
+                      <b>
+                        {comparisonRows.length
+                          ? comparisonRows.reduce((a, b) =>
+                              a.metrics.monthly > b.metrics.monthly ? a : b,
+                            ).channel
+                          : "—"}
+                      </b>
+                      .
+                    </div>
+                  </div>
+                  <div className="card" style={{ marginTop: 15 }}>
+                    <div className="panel-head">
+                      <h3>Compare products for buying capital</h3>
+                      <span className="subtle">Choose 2–5 products</span>
+                    </div>
+                    <div className="fields">
+                      {skus.map((s) => (
+                        <label className="selectrow" key={s.id}>
+                          <input
+                            type="checkbox"
+                            checked={compareIds.includes(s.id)}
+                            onChange={(e) =>
+                              setCompareIds((old) =>
+                                e.target.checked
+                                  ? old.length < 5
+                                    ? [...old, s.id]
+                                    : old
+                                  : old.filter((id) => id !== s.id),
+                              )
+                            }
+                          />
+                          {s.sku} · {s.name}
+                        </label>
+                      ))}
+                    </div>
+                    {compareIds.length < 2 ? (
+                      <p className="subtle">
+                        Select at least two products to compare.
+                      </p>
+                    ) : (
+                      <div className="tablewrap" style={{ marginTop: 12 }}>
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              {[
+                                "Product",
+                                "Price",
+                                "Landed cost",
+                                "Gross margin",
+                                "Contribution margin",
+                                "Marketing",
+                                "Returns",
+                                "Inventory investment",
+                                "Monthly contribution",
+                                "Buying signal",
+                              ].map((x) => (
+                                <th key={x}>{x}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {compareIds
+                              .map((id) => skus.find((s) => s.id === id)!)
+                              .map((s) => {
+                                const c = calculate(s),
+                                  score = buyingScore(s);
+                                return (
+                                  <tr key={s.id}>
+                                    <td>
+                                      {s.sku} · {s.name}
+                                    </td>
+                                    <td>{money(s.price)}</td>
+                                    <td>{money(c.landed)}</td>
+                                    <td>{percent(c.grossMargin)}</td>
+                                    <td>{percent(c.afterMargin)}</td>
+                                    <td>{money(c.marketing)}</td>
+                                    <td>{percent(s.return_rate)}</td>
+                                    <td>
+                                      {money(
+                                        c.landed * (s.inventory_units || 0),
+                                      )}
+                                    </td>
+                                    <td>{money(c.monthly)}</td>
+                                    <td>
+                                      {s.id === recommendedBuyingId &&
+                                      score > 0 &&
+                                      c.after > 0 &&
+                                      !s.quality_override &&
+                                      (s.return_rate || 0) < 10 &&
+                                      (s.days_cover || 0) < 90
+                                        ? "Review for more capital"
+                                        : "Do not increase capital yet"}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </section>
+          )}
 
-    {view==="database"&&<section className="view active"><div className="heading"><div><div className="eyebrow">Assortment records</div><h1>Product database</h1><p>Search, edit and maintain SKU profitability inputs.</p></div>{user.role!=="Management"&&<button className="btn primary" onClick={newSku}>＋ &nbsp; Add product</button>}</div><div className="filters"><input placeholder="Search SKU, product or supplier…" value={search} onChange={e=>setSearch(e.target.value)}/><select value={dbCategory} onChange={e=>setDbCategory(e.target.value)}><option value="">All categories</option>{[...new Set(skus.map(s=>s.category).filter(Boolean))].map(c=><option key={c}>{c}</option>)}</select><select value={dbChannel} onChange={e=>setDbChannel(e.target.value)}><option value="">All channels</option>{channels.map(c=><option key={c}>{c}</option>)}</select></div><div className="card tablewrap"><table className="table"><thead><tr>{["SKU / Product","Category","Channel","Net revenue","Landed cost","Contribution","Class","Updated",""].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{databaseRows.map(s=>{const c=calculate(s);return <tr key={s.id}><td><b>{s.sku}</b><br/><span className="subtle">{s.name}</span></td><td>{s.category}</td><td>{s.channel}</td><td>{money(c.revenue)}</td><td>{money(c.landed)}</td><td className={c.after>=0?"positive":"negative"}><b>{money(c.after)}</b></td><td><span className="pill">{classify(s,settings)}</span></td><td>{String(s.updated_at||"").slice(0,10)}</td><td><button className="btn small" onClick={()=>void showHistory(s.id)}>History</button> <button className="btn small" disabled={user.role==="Management"} onClick={()=>editSku(s)}>Edit</button></td></tr>})}{databaseRows.length===0&&<tr><td colSpan={9}>No matching products.</td></tr>}</tbody></table></div></section>}
+          {view === "database" && (
+            <section className="view active">
+              <div className="heading">
+                <div>
+                  <div className="eyebrow">Assortment records</div>
+                  <h1>Product database</h1>
+                  <p>Search, edit and maintain SKU profitability inputs.</p>
+                </div>
+                {user.role !== "Management" && (
+                  <button className="btn primary" onClick={newSku}>
+                    ＋ &nbsp; Add product
+                  </button>
+                )}
+              </div>
+              <div className="filters">
+                <input
+                  placeholder="Search SKU, product or supplier…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <select
+                  value={dbCategory}
+                  onChange={(e) => setDbCategory(e.target.value)}
+                >
+                  <option value="">All categories</option>
+                  {[
+                    ...new Set(skus.map((s) => s.category).filter(Boolean)),
+                  ].map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+                <select
+                  value={dbChannel}
+                  onChange={(e) => setDbChannel(e.target.value)}
+                >
+                  <option value="">All channels</option>
+                  {channels.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="card tablewrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      {[
+                        "SKU / Product",
+                        "Category",
+                        "Channel",
+                        "Net revenue",
+                        "Landed cost",
+                        "Contribution",
+                        "Class",
+                        "Updated",
+                        "",
+                      ].map((x) => (
+                        <th key={x}>{x}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {databaseRows.map((s) => {
+                      const c = calculate(s);
+                      return (
+                        <tr key={s.id}>
+                          <td>
+                            <b>{s.sku}</b>
+                            <br />
+                            <span className="subtle">{s.name}</span>
+                          </td>
+                          <td>{s.category}</td>
+                          <td>{s.channel}</td>
+                          <td>{money(c.revenue)}</td>
+                          <td>{money(c.landed)}</td>
+                          <td
+                            className={c.after >= 0 ? "positive" : "negative"}
+                          >
+                            <b>{money(c.after)}</b>
+                          </td>
+                          <td>
+                            <span className="pill">
+                              {classify(s, settings)}
+                            </span>
+                          </td>
+                          <td>{String(s.updated_at || "").slice(0, 10)}</td>
+                          <td>
+                            <button
+                              className="btn small"
+                              onClick={() => void showHistory(s.id)}
+                            >
+                              History
+                            </button>{" "}
+                            <button
+                              className="btn small"
+                              disabled={user.role === "Management"}
+                              onClick={() => editSku(s)}
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {databaseRows.length === 0 && (
+                      <tr>
+                        <td colSpan={9}>No matching products.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
-    {view==="reports"&&<section className="view active"><div className="heading"><div><div className="eyebrow">Data & reporting</div><h1>Reports & exports</h1><p>Download the current product records for finance and buying reviews.</p></div></div><div className="grid panels"><div className="card"><div className="eyebrow">CSV data exchange</div><h3 className="section-title" style={{marginTop:9}}>Export product database</h3><p className="section-sub">Download all saved SKU inputs as a CSV file, ready for Excel.</p><div className="fields">{([["category","Category"],["supplier","Supplier"],["channel","Channel"]] as const).map(([key,label])=><div className="field" key={key}><label>{label}</label><select id={`export-${key}`}><option value="">All {label.toLowerCase()}s</option>{[...new Set(skus.map(s=>s[key]).filter(Boolean))].map(v=><option key={v}>{v}</option>)}</select></div>)}</div><br/><button className="btn primary" onClick={()=>{const p=new URLSearchParams();for(const k of ["category","supplier","channel"]){const v=(document.getElementById(`export-${k}`) as HTMLSelectElement).value;if(v)p.set(k,v)}window.location.href=`/api/export?${p}`}}>↓ &nbsp; CSV</button> <button className="btn" onClick={()=>{const p=new URLSearchParams();for(const k of ["category","supplier","channel"]){const v=(document.getElementById(`export-${k}`) as HTMLSelectElement).value;if(v)p.set(k,v)}window.location.href=`/api/export.xlsx?${p}`}}>↓ &nbsp; Excel (.xlsx)</button></div><div className="card"><div className="eyebrow">Bulk upload</div><h3 className="section-title" style={{marginTop:9}}>Import CSV / Excel records</h3><p className="section-sub">Upload a CSV or exported Excel file with matching headers. Existing SKU codes are updated.</p><input id="upload-file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/><br/><br/><button className="btn" disabled={busy} onClick={()=>void importFile((document.getElementById("upload-file") as HTMLInputElement).files?.[0])}>Upload CSV / Excel</button></div></div><div className="card" style={{marginTop:16}}>{["Admin","Finance","Management"].includes(user.role)&&<button className="btn" onClick={()=>void showAudit()}>View cost & tax audit trail</button>} {user.role==="Admin"&&<a className="btn" href="/api/backup">Download SQLite backup</a>}</div><div className="card" style={{marginTop:16}}><div className="eyebrow">Finance control</div><h3 className="section-title" style={{marginTop:8}}>Tax validation reminder</h3><p className="subtle" style={{lineHeight:1.7}}>GST and HSN classifications and input tax credit eligibility must be validated by the Mason Home finance team or its CA. Enter eligible GST credits explicitly; the calculator does not assume all input GST is recoverable. TCS and TDS are tax receivables and excluded from profitability.</p></div></section>}
+          {view === "reports" && (
+            <section className="view active">
+              <div className="heading">
+                <div>
+                  <div className="eyebrow">Data & reporting</div>
+                  <h1>Reports & exports</h1>
+                  <p>
+                    Download the current product records for finance and buying
+                    reviews.
+                  </p>
+                </div>
+              </div>
+              <div className="grid panels">
+                <div className="card">
+                  <div className="eyebrow">CSV data exchange</div>
+                  <h3 className="section-title" style={{ marginTop: 9 }}>
+                    Export product database
+                  </h3>
+                  <p className="section-sub">
+                    Download all saved SKU inputs as a CSV file, ready for
+                    Excel.
+                  </p>
+                  <div className="fields">
+                    {(
+                      [
+                        ["category", "Category"],
+                        ["supplier", "Supplier"],
+                        ["channel", "Channel"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <div className="field" key={key}>
+                        <label>{label}</label>
+                        <select id={`export-${key}`}>
+                          <option value="">All {label.toLowerCase()}s</option>
+                          {[
+                            ...new Set(skus.map((s) => s[key]).filter(Boolean)),
+                          ].map((v) => (
+                            <option key={v}>{v}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                  <br />
+                  <button
+                    className="btn primary"
+                    onClick={() => {
+                      const p = new URLSearchParams();
+                      for (const k of ["category", "supplier", "channel"]) {
+                        const v = (
+                          document.getElementById(
+                            `export-${k}`,
+                          ) as HTMLSelectElement
+                        ).value;
+                        if (v) p.set(k, v);
+                      }
+                      window.location.href = `/api/export?${p}`;
+                    }}
+                  >
+                    ↓ &nbsp; CSV
+                  </button>{" "}
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      const p = new URLSearchParams();
+                      for (const k of ["category", "supplier", "channel"]) {
+                        const v = (
+                          document.getElementById(
+                            `export-${k}`,
+                          ) as HTMLSelectElement
+                        ).value;
+                        if (v) p.set(k, v);
+                      }
+                      window.location.href = `/api/export.xlsx?${p}`;
+                    }}
+                  >
+                    ↓ &nbsp; Excel (.xlsx)
+                  </button>
+                </div>
+                <div className="card">
+                  <div className="eyebrow">Bulk upload</div>
+                  <h3 className="section-title" style={{ marginTop: 9 }}>
+                    Import CSV / Excel records
+                  </h3>
+                  <p className="section-sub">
+                    Upload a CSV or exported Excel file with matching headers.
+                    Existing SKU codes are updated.
+                  </p>
+                  <input
+                    id="upload-file"
+                    type="file"
+                    accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  />
+                  <br />
+                  <br />
+                  <button
+                    className="btn"
+                    disabled={busy}
+                    onClick={() =>
+                      void importFile(
+                        (
+                          document.getElementById(
+                            "upload-file",
+                          ) as HTMLInputElement
+                        ).files?.[0],
+                      )
+                    }
+                  >
+                    Upload CSV / Excel
+                  </button>
+                </div>
+              </div>
+              <div className="card" style={{ marginTop: 16 }}>
+                {["Admin", "Finance", "Management"].includes(user.role) && (
+                  <button className="btn" onClick={() => void showAudit()}>
+                    View cost & tax audit trail
+                  </button>
+                )}{" "}
+                {user.role === "Admin" && (
+                  <a className="btn" href="/api/backup">
+                    Download SQLite backup
+                  </a>
+                )}
+              </div>
+              <div className="card" style={{ marginTop: 16 }}>
+                <div className="eyebrow">Finance control</div>
+                <h3 className="section-title" style={{ marginTop: 8 }}>
+                  Tax validation reminder
+                </h3>
+                <p className="subtle" style={{ lineHeight: 1.7 }}>
+                  GST and HSN classifications and input tax credit eligibility
+                  must be validated by the Mason Home finance team or its CA.
+                  Enter eligible GST credits explicitly; the calculator does not
+                  assume all input GST is recoverable. TCS and TDS are tax
+                  receivables and excluded from profitability.
+                </p>
+              </div>
+            </section>
+          )}
 
-    {view==="settings"&&user.role==="Admin"&&<section className="view active"><div className="heading"><div><div className="eyebrow">Administration</div><h1>Settings & access</h1><p>Manage users and configurable classification weights.</p></div></div><div className="settings-grid"><form className="card" onSubmit={createUser}><h3 className="section-title">Add a user</h3><p className="section-sub">Passwords must be at least 12 characters.</p><div className="fields">{[["username","Username"],["display_name","Display name"],["password","Initial password"]].map(([key,label])=><div className="field" key={key}><label>{label}</label><input name={key} required={key!=="display_name"} type={key==="password"?"password":"text"}/></div>)}<div className="field"><label>Role</label><select name="role">{["Admin","Finance","Buying","Marketing","Management"].map(r=><option key={r}>{r}</option>)}</select></div></div><button className="btn primary" style={{marginTop:12}}>Create user</button></form><form className="card" key={JSON.stringify(settings)} onSubmit={saveSettings}><h3 className="section-title">Classification weights</h3><p className="section-sub">Weights are percentages and must total 100.</p><div className="fields">{Object.entries(settings.weights||defaults).map(([key,value])=><div className="field" key={key}><label>{key.replaceAll("_"," ")}</label><input name={`w-${key}`} type="number" defaultValue={value as number}/></div>)}{Object.entries(settings.thresholds||{}).map(([key,value])=><div className="field" key={key}><label>{key.replaceAll("_"," ")}</label><input name={`t-${key}`} type="number" defaultValue={value as number}/></div>)}</div><button className="btn" style={{marginTop:12}}>Save scoring</button></form></div><div className="card" style={{marginTop:15}}><div className="panel-head"><h3>Workspace users</h3><span className="subtle">Role-based access</span></div><div className="tablewrap"><table className="table"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Added</th></tr></thead><tbody>{users.map(u=><tr key={u.id}><td>{u.display_name}</td><td>{u.username}</td><td>{u.role}</td></tr>)}</tbody></table></div></div></section>}
-    </div></main>
+          {view === "settings" && user.role === "Admin" && (
+            <section className="view active">
+              <div className="heading">
+                <div>
+                  <div className="eyebrow">Administration</div>
+                  <h1>Settings & access</h1>
+                  <p>Manage users and configurable classification weights.</p>
+                </div>
+              </div>
+              <div className="settings-grid">
+                <form className="card" onSubmit={createUser}>
+                  <h3 className="section-title">Add a user</h3>
+                  <p className="section-sub">
+                    Passwords must be at least 12 characters.
+                  </p>
+                  <div className="fields">
+                    {[
+                      ["username", "Username"],
+                      ["display_name", "Display name"],
+                      ["password", "Initial password"],
+                    ].map(([key, label]) => (
+                      <div className="field" key={key}>
+                        <label>{label}</label>
+                        <input
+                          name={key}
+                          required={key !== "display_name"}
+                          type={key === "password" ? "password" : "text"}
+                        />
+                      </div>
+                    ))}
+                    <div className="field">
+                      <label>Role</label>
+                      <select name="role">
+                        {[
+                          "Admin",
+                          "Finance",
+                          "Buying",
+                          "Marketing",
+                          "Management",
+                        ].map((r) => (
+                          <option key={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <button className="btn primary" style={{ marginTop: 12 }}>
+                    Create user
+                  </button>
+                </form>
+                <form
+                  className="card"
+                  key={JSON.stringify(settings)}
+                  onSubmit={saveSettings}
+                >
+                  <h3 className="section-title">Classification weights</h3>
+                  <p className="section-sub">
+                    Weights are percentages and must total 100.
+                  </p>
+                  <div className="fields">
+                    {Object.entries(settings.weights || defaults).map(
+                      ([key, value]) => (
+                        <div className="field" key={key}>
+                          <label>{key.replaceAll("_", " ")}</label>
+                          <input
+                            name={`w-${key}`}
+                            type="number"
+                            defaultValue={value as number}
+                          />
+                        </div>
+                      ),
+                    )}
+                    {Object.entries(settings.thresholds || {}).map(
+                      ([key, value]) => (
+                        <div className="field" key={key}>
+                          <label>{key.replaceAll("_", " ")}</label>
+                          <input
+                            name={`t-${key}`}
+                            type="number"
+                            defaultValue={value as number}
+                          />
+                        </div>
+                      ),
+                    )}
+                  </div>
+                  <button className="btn" style={{ marginTop: 12 }}>
+                    Save scoring
+                  </button>
+                </form>
+              </div>
+              <div className="card" style={{ marginTop: 15 }}>
+                <div className="panel-head">
+                  <h3>Workspace users</h3>
+                  <span className="subtle">Role-based access</span>
+                </div>
+                <div className="tablewrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Added</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((u) => (
+                        <tr key={u.id}>
+                          <td>{u.display_name}</td>
+                          <td>{u.username}</td>
+                          <td>{u.role}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
+      </main>
 
-    {dialog&&<div className="authwall" onClick={()=>setDialog(null)}><div className="authbox" style={{width:"min(900px,100%)",maxHeight:"80vh",overflow:"auto"}} onClick={e=>e.stopPropagation()}><div className="panel-head"><h3>{dialog.title}</h3><button className="btn" onClick={()=>setDialog(null)}>Close</button></div><div className="tablewrap"><table className="table"><thead><tr>{dialog.title.includes("history")?["Month / version","Net revenue","Gross profit","Contribution","Margin","Recorded by","Time"].map(x=><th key={x}>{x}</th>):["SKU","Action","Changes","By","When"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{dialog.rows?.map(row=>dialog.title.includes("history")?<HistoryRow key={row.id} row={row}/>:<tr key={row.id}><td>{row.sku}</td><td>{row.action}</td><td><code>{JSON.stringify(JSON.parse(row.changes))}</code></td><td>{row.actor}</td><td>{row.created_at}</td></tr>)}</tbody></table></div></div></div>}
-  </div>;
+      {dialog && (
+        <div className="authwall" onClick={() => setDialog(null)}>
+          <div
+            className="authbox"
+            style={{
+              width: "min(900px,100%)",
+              maxHeight: "80vh",
+              overflow: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="panel-head">
+              <h3>{dialog.title}</h3>
+              <button className="btn" onClick={() => setDialog(null)}>
+                Close
+              </button>
+            </div>
+            <div className="tablewrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    {dialog.title.includes("history")
+                      ? [
+                          "Month / version",
+                          "Net revenue",
+                          "Gross profit",
+                          "Contribution",
+                          "Margin",
+                          "Recorded by",
+                          "Time",
+                        ].map((x) => <th key={x}>{x}</th>)
+                      : ["SKU", "Action", "Changes", "By", "When"].map((x) => (
+                          <th key={x}>{x}</th>
+                        ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {dialog.rows?.map((row) =>
+                    dialog.title.includes("history") ? (
+                      <HistoryRow key={row.id} row={row} />
+                    ) : (
+                      <tr key={row.id}>
+                        <td>{row.sku}</td>
+                        <td>{row.action}</td>
+                        <td>
+                          <code>{JSON.stringify(JSON.parse(row.changes))}</code>
+                        </td>
+                        <td>{row.actor}</td>
+                        <td>{row.created_at}</td>
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
-function HistoryRow({row}:{row:any}){const metrics=JSON.parse(row.metrics);return <tr><td>{row.period} · v{row.version}</td><td>{money(metrics.revenue)}</td><td>{money(metrics.gross)}</td><td>{money(metrics.after)}</td><td>{percent(metrics.revenue?metrics.after/metrics.revenue*100:0)}</td><td>{row.actor}</td><td>{row.created_at}</td></tr>}
-function classify(s:Record<string,any>,settings:any){const c=calculate(s),w=settings.weights||defaults,t=settings.thresholds||{hero:80,low_margin:15,volume:70,new_launch_days:90},profit=Math.max(0,Math.min(100,(c.afterMargin+20)*2.5)),inventory=s.days_cover?Math.max(0,Math.min(100,100-Math.abs(s.days_cover-45)*1.2)):50,score=((s.demand_strength||0)*w.demand_strength+profit*w.profitability+(s.demand_consistency||0)*w.demand_consistency+(s.quality_score||0)*w.quality_score+inventory*w.inventory_efficiency)/100;if((Date.now()-Date.parse(s.created_at||Date.now()))/86400000<(t.new_launch_days||90))return "New Launch";if(c.after<0)return(s.inventory_units||0)>=(s.monthly_sales||0)*3?"Cash Trap / Exit Candidate":"Problem Product";if(score>=(t.hero||80)&&!s.quality_override)return "Core Hero";if((s.demand_strength||0)>=(t.volume||70)&&c.afterMargin<(t.low_margin||15))return "Volume Driver";if(c.afterMargin>=20&&(s.demand_strength||0)<50)return "Hidden Gem";return "Problem Product"}
+function HistoryRow({ row }: { row: any }) {
+  const metrics = JSON.parse(row.metrics);
+  return (
+    <tr>
+      <td>
+        {row.period} · v{row.version}
+      </td>
+      <td>{money(metrics.revenue)}</td>
+      <td>{money(metrics.gross)}</td>
+      <td>{money(metrics.after)}</td>
+      <td>
+        {percent(metrics.revenue ? (metrics.after / metrics.revenue) * 100 : 0)}
+      </td>
+      <td>{row.actor}</td>
+      <td>{row.created_at}</td>
+    </tr>
+  );
+}
+function classify(s: Record<string, any>, settings: any) {
+  const c = calculate(s),
+    w = settings.weights || defaults,
+    t = settings.thresholds || {
+      hero: 80,
+      low_margin: 15,
+      volume: 70,
+      new_launch_days: 90,
+    },
+    profit = Math.max(0, Math.min(100, (c.afterMargin + 20) * 2.5)),
+    inventory = s.days_cover
+      ? Math.max(0, Math.min(100, 100 - Math.abs(s.days_cover - 45) * 1.2))
+      : 50,
+    score =
+      ((s.demand_strength || 0) * w.demand_strength +
+        profit * w.profitability +
+        (s.demand_consistency || 0) * w.demand_consistency +
+        (s.quality_score || 0) * w.quality_score +
+        inventory * w.inventory_efficiency) /
+      100;
+  if (
+    (Date.now() - Date.parse(s.created_at || Date.now())) / 86400000 <
+    (t.new_launch_days || 90)
+  )
+    return "New Launch";
+  if (c.after < 0)
+    return (s.inventory_units || 0) >= (s.monthly_sales || 0) * 3
+      ? "Cash Trap / Exit Candidate"
+      : "Problem Product";
+  if (score >= (t.hero || 80) && !s.quality_override) return "Core Hero";
+  if (
+    (s.demand_strength || 0) >= (t.volume || 70) &&
+    c.afterMargin < (t.low_margin || 15)
+  )
+    return "Volume Driver";
+  if (c.afterMargin >= 20 && (s.demand_strength || 0) < 50) return "Hidden Gem";
+  return "Problem Product";
+}
 
-function buyingScore(s:Product){const inventory=s.days_cover?Math.max(0,100-Math.abs(s.days_cover-45)*1.2):50;return calculate(s).afterMargin+(s.demand_strength||0)/10+(s.quality_score||0)/10+inventory/10-(s.return_rate||0)*2}
+function buyingScore(s: Product) {
+  const inventory = s.days_cover
+    ? Math.max(0, 100 - Math.abs(s.days_cover - 45) * 1.2)
+    : 50;
+  return (
+    calculate(s).afterMargin +
+    (s.demand_strength || 0) / 10 +
+    (s.quality_score || 0) / 10 +
+    inventory / 10 -
+    (s.return_rate || 0) * 2
+  );
+}
